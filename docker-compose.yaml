@@ -1,0 +1,20 @@
+version: '3'
+#docker run -p 9000:9000 
+#--name minio1 
+# -v /mnt/data:/data 
+# -v /mnt/config:/root/.minio 
+# minio/minio server /data
+
+services:
+ minio:
+  image: minio/minio
+  volumes:
+   - ./tmp:/data
+  ports:
+   - "9000:9000"
+  environment:
+   MINIO_ACCESS_KEY: testkey
+   MINIO_SECRET_KEY: secretkey
+  command: server /data
+
+
