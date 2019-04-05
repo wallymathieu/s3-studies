@@ -70,16 +70,16 @@ type JsonAppendToBucket(bucketName, maxKeys, s3Factory:(unit -> AmazonS3Client))
                     req.MaxKeys <- maxKeys
                     
                     let! (commands,maybeNext') = readObjects req
-                    let allCommands= List<_>()
+                    let allCommands= ResizeArray<_>()
                     allCommands.Add commands
                     let mutable maybeNext = maybeNext'
                     while (maybeNext.IsSome) do 
                         match maybeNext with
                         | Some next ->
-                             let! (commands,maybeNext') = readObjects req
+                             let! (commands,maybeNext') = readObjects next
                              allCommands.Add commands
                              maybeNext <- maybeNext'
                         | None -> ()
                     return allCommands.ToArray() |> Array.concat |> Array.toList 
-                }            
+                }
             readBatches()

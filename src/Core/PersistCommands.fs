@@ -1,17 +1,16 @@
 ﻿namespace SomeBasicFileStoreApp
 open System
 open System.Collections.Concurrent
-open System.Collections.Generic
 open System.Threading
 
 type PersistCommands(appendBatch:IAppendBatch)=
     let mutable thread= null
     let stop = ref false
-    let commands = new ConcurrentQueue<Command>()
+    let commands = ConcurrentQueue<Command>()
     let signal = new EventWaitHandle(false, EventResetMode.AutoReset)
     
-    let AppendBatch()=
-        let receivedCommands = new List<Command>()
+    let appendBatch()=
+        let receivedCommands = ResizeArray<Command>()
 
         let command= ref Command.Empty
         while (commands.TryDequeue(command)) do
@@ -22,22 +21,22 @@ type PersistCommands(appendBatch:IAppendBatch)=
     member this.ThreadStart():unit=
         while (not !stop) do
             signal.WaitOne() |> ignore
-            AppendBatch()
+            appendBatch()
         // While the batch has been running, more commands might have been added
         // and stop might have been called
-        AppendBatch()
+        appendBatch()
 
     member this.Start()=
         if (thread <> null) then
             failwith("already started")
         else
-            thread <- new Thread(this.ThreadStart)
+            thread <- Thread(this.ThreadStart)
             thread.Start()
 
-    member this.Started()=
+    member __.Started()=
         thread<>null
 
-    member this.Stop()=
+    member __.Stop()=
         stop := true
         signal.Set() |> ignore
 
@@ -46,7 +45,9 @@ type PersistCommands(appendBatch:IAppendBatch)=
         else
             ()
 
-    member this.Handle(command)=
+    member __.Handle(command)=
         // send the command to separate thread and persist it
         commands.Enqueue(command)
         signal.Set() |> ignore
+    interface IDisposable with
+        member __.Dispose()=signal.Dispose()
